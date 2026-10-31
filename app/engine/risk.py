@@ -9,7 +9,7 @@ SEVERITY_ORDER = {"high": 0, "medium": 1, "low": 2}
 MIN_DAYS_AFTER_SOWING_FOR_NDVI = 30
 
 
-def _satellite_sees_this_crop(report: dict, sat: dict) -> bool:
+def satellite_sees_this_crop(report: dict, sat: dict) -> bool:
     sowing = (report.get("plot") or {}).get("sowing_date")
     if not sowing or not (report.get("stage") or {}).get("known"):
         return False
@@ -199,7 +199,7 @@ def assess(report: dict) -> list[dict]:
     # the latest pass at least 30 days after sowing. Otherwise the pixels show a previous crop or a bare,
     # harvested field, and "greenness below last year" would be a false alarm.
     sat = report.get("satellite")
-    if sat and _satellite_sees_this_crop(report, sat):
+    if sat and satellite_sees_this_crop(report, sat):
         ssrc = sat["sources"][0]["source"]
         chg = sat.get("change_vs_last_year_pct")
         if chg is not None and chg <= -20:

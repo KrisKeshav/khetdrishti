@@ -307,3 +307,36 @@ def test_simulated_primary_llm_outage(monkeypatch):
         assert model == "m2" and "simulated" in notes[0]
     finally:
         fetch.clear_outages()
+
+
+# ------------------------------------------------------------------ soil fallback
+
+def test_soil_falls_back_to_wcs_when_rest_api_down(monkeypatch):
+    from app.data_sources import soil
+    monkeypatch.setattr(soil, "_rest_down_until", 0.0)
+
+    def rest_down(lat, lon):
+        raise DataUnavailable("ISRIC SoilGrids 2.0", "HTTP 503")
+    cells = {"clay": 40.0, "sand": 20.0, "silt": 40.0, "phh2o": 7.3, "soc": 12.8}
+    monkeypatch.setattr(soil, "_rest_with_neighbours", rest_down)
+    monkeypatch.setattr(soil, "_wcs_cell", lambda prop, depth, lat, lon: cells[prop])
+    out = soil.soil_profile(22.4, 79.0)
+    assert out["texture"] in ("clay", "silty clay") and out["ph"] == 7.3
+    assert "WCS" in out["sources"][0]["source"] and "503" in out["sources"][0]["note"]
+    # the breaker now skips the dead REST API on the next call
+    called = []
+    monkeypatch.setattr(soil, "_rest_with_neighbours", lambda *a: called.append(1))
+    soil.soil_profile(22.4, 79.0)
+    assert called == []
+
+
+def test_soil_no_data_does_not_fall_back(monkeypatch):
+    from app.data_sources import soil
+    monkeypatch.setattr(soil, "_rest_down_until", 0.0)
+
+    def masked(lat, lon):
+        raise DataUnavailable("ISRIC SoilGrids 2.0", "no soil data at this point (water body or urban area?)")
+    monkeypatch.setattr(soil, "_rest_with_neighbours", masked)
+    monkeypatch.setattr(soil, "_wcs_cell", lambda *a: pytest.fail("WCS has the same masked map; must not be tried"))
+    with pytest.raises(DataUnavailable, match="no soil data"):
+        soil.soil_profile(22.4, 79.0)

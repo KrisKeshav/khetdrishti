@@ -99,6 +99,11 @@ def build_report(lat: float, lon: float, crop_id: str, sowing_date: str | None =
             wb["assumption"] = "SoilGrids unavailable — loam soil assumed for field capacity / wilting point"
         report["water"] = apply_stage(wb, stage)
 
+    sat = results.get("satellite")
+    if sat and not risk.satellite_sees_this_crop(report, sat):
+        sat["interpretation"] = ("Crop just sown or sowing date unknown: these images mostly show soil or the previous "
+                                 "crop, so crop-health warnings are switched off until ~30 days after sowing.")
+
     report["risks"] = risk.assess(report)
     report["sources"] = collect_sources(report)
     return report

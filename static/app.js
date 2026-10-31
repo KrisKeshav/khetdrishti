@@ -19,6 +19,17 @@ function fmtTime(iso) {
   return isNaN(d) ? "" : d.toLocaleString("en-IN", { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" });
 }
 function v(x, unit = "") { return x === null || x === undefined ? '<span class="unavail">n/a</span>' : `${esc(x)}${unit}`; }
+// Plain-language version of a provider error, keeping the technical code in brackets for transparency.
+function friendlyErr(e) {
+  if (!e) return "Unavailable right now.";
+  const s = String(e);
+  if (/HTTP 5\d\d/.test(s)) return `Provider is temporarily down (${s.match(/HTTP 5\d\d/)[0]}). Nothing is estimated in its place.`;
+  if (/HTTP 429/.test(s)) return "Provider is rate-limiting requests right now (HTTP 429). Try again in a minute.";
+  if (/timed out|Timeout/i.test(s)) return "Provider took too long to answer. It will be retried on the next request.";
+  if (/Connect/i.test(s)) return "Could not connect to the provider right now.";
+  if (/simulated outage/i.test(s)) return "Simulated outage (resilience demo).";
+  return s;
+}
 
 async function api(path, opts = {}, timeoutMs = 60000) {
   // Every request has a deadline so the UI can never hang forever on a stuck connection.
@@ -191,7 +202,7 @@ function renderReport(r) {
   const errs = r.errors || {};
   if (Object.keys(errs).length) {
     $("risks").insertAdjacentHTML("beforeend", `<div class="risk"><h4>Some data unavailable <span class="sev">info</span></h4>
-      <p class="ev">${Object.entries(errs).map(([k, e]) => `<b>${esc(k)}</b>: ${esc(e)}`).join("<br>")}</p>
+      <p class="ev">${Object.entries(errs).map(([k, e]) => `<b>${esc(k)}</b>: ${esc(friendlyErr(e))}`).join("<br>")}</p>
       <p class="ev">Nothing is estimated in its place — affected checks are skipped.</p></div>`);
   }
 
@@ -214,7 +225,7 @@ function renderNdvi(sat, err) {
   destroyChart("ndvi");
   if (!sat) {
     $("ndviBadge").textContent = "unavailable"; $("ndviBadge").className = "chip warn";
-    $("ndviNote").textContent = err || "Satellite data unavailable.";
+    $("ndviNote").textContent = friendlyErr(err);
     return;
   }
   $("ndviBadge").textContent = `NDVI ${sat.latest_ndvi} · ${sat.health_class}`;
@@ -240,14 +251,15 @@ function renderNdvi(sat, err) {
   const parts = [`${sat.series.length} cloud-free passes in 120 days`, `latest ${fmtDate(sat.latest_date)} (${sat.days_since_latest} days ago)`];
   if (sat.change_vs_last_year_pct !== undefined) parts.push(`${sat.change_vs_last_year_pct > 0 ? "+" : ""}${sat.change_vs_last_year_pct}% vs last year`);
   parts.push(`${sat.plot_size_m} m plot · ${sat.provider}`);
-  $("ndviNote").textContent = parts.join(" · ");
+  $("ndviNote").innerHTML = esc(parts.join(" · ")) + (sat.interpretation ? `<br><b>Note:</b> ${esc(sat.interpretation)}` : "");
+  if (sat.interpretation) { $("ndviBadge").textContent = `NDVI ${sat.latest_ndvi} · crop not yet visible`; $("ndviBadge").className = "chip warn"; }
 }
 
 function renderWeather(w, err) {
   destroyChart("wx");
   if (!w) {
     $("wxBadge").textContent = "unavailable"; $("wxBadge").className = "chip warn";
-    $("wxNote").textContent = err || "";
+    $("wxNote").textContent = friendlyErr(err);
     return;
   }
   const days = w.days;
@@ -294,7 +306,7 @@ function renderWater(wb, w) {
 }
 
 function renderMarket(m, err) {
-  if (!m) { $("marketCard").innerHTML = `<h3>Mandi prices</h3><p class="unavail">${esc(err || "unavailable")}</p>`; return; }
+  if (!m) { $("marketCard").innerHTML = `<h3>Mandi prices</h3><p class="unavail">${esc(friendlyErr(err))}</p>`; return; }
   const rows = (m.nearest_markets.length ? m.nearest_markets : m.home_district_markets).slice(0, 5);
   const trend = (k) => m.trend[k]
     ? `${m.trend[k].change_pct > 0 ? "▲" : "▼"} ${Math.abs(m.trend[k].change_pct)}% <span class="muted small">(${m.trend[k].markets_compared} mkts)</span>`
@@ -316,12 +328,12 @@ function renderSoil(s, rf, errs) {
       <dl class="kv"><dt>Texture</dt><dd>${esc(s.texture)}</dd><dt>Sand / silt / clay</dt><dd>${s.sand_pct} / ${s.silt_pct} / ${s.clay_pct} %</dd>
       <dt>pH</dt><dd>${v(s.ph)}</dd><dt>Organic carbon</dt><dd>${v(s.organic_carbon_g_per_kg, " g/kg")}</dd></dl>
       <p class="muted small">${esc(s.note || s.resolution)}</p>`
-    : `<p class="unavail">${esc(errs.soil || "unavailable")}</p>`;
+    : `<p class="unavail">${esc(friendlyErr(errs.soil))}</p>`;
   const rain = rf ? `
       <dl class="kv"><dt>Rain ${fmtDate(rf.window_start)}–${fmtDate(rf.window_end)}</dt><dd>${esc(rf.rain_mm)} mm</dd>
       <dt>${rf.baseline_years}-year normal</dt><dd>${esc(rf.normal_mm)} mm</dd>
       <dt>Departure</dt><dd>${rf.departure_pct === null ? "—" : (rf.departure_pct > 0 ? "+" : "") + rf.departure_pct + "%"} · ${esc(rf.imd_category)}</dd></dl>`
-    : `<p class="unavail">${esc(errs.rainfall || "unavailable")}</p>`;
+    : `<p class="unavail">${esc(friendlyErr(errs.rainfall))}</p>`;
   $("soilCard").innerHTML = `<h3>Soil (SoilGrids)</h3>${soil}<h3 style="margin-top:10px">Rainfall vs normal (ERA5)</h3>${rain}`;
 }
 
