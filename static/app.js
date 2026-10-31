@@ -188,6 +188,8 @@ function renderReport(r) {
   $("rMeta").textContent = `${cropSel} · sown ${r.plot.sowing_date ? fmtDate(r.plot.sowing_date, { day: "numeric", month: "short", year: "numeric" }) : "date not given"} · generated ${fmtTime(r.generated_at)}`;
   const st = r.stage || {};
   $("rStage").textContent = st.known ? `Day ${st.days_after_sowing} · ${st.stage_label}` : "Stage unknown (add sowing date)";
+  $("rStage").className = "chip" + (st.season_warning ? " warn" : "");
+  if (st.season_warning) $("rMeta").textContent += ` · ⚠ ${st.season_warning}`;
 
   // Risks
   $("risks").innerHTML = (r.risks || []).length
@@ -532,7 +534,7 @@ $("runMonitor").addEventListener("click", async () => {
   $("monitorResult").textContent = "Checking every saved plot against live data…";
   try {
     const s = await api("/api/monitor/run", { method: "POST" });
-    $("monitorResult").textContent = `Checked ${s.plots} plot(s) · ${s.new_alerts} new alert(s) · ${s.notified} pushed to Telegram`
+    $("monitorResult").textContent = `Checked ${s.plots} plot(s) · ${s.new_alerts} new alert(s) · ${s.retracted || 0} retracted (risk no longer present) · ${s.notified} pushed to Telegram`
       + (s.errors.length ? ` · errors: ${s.errors.join("; ")}` : "");
     loadMonitor();
   } catch (err) {

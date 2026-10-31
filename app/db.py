@@ -187,6 +187,16 @@ def save_alert(plot_id: int, risk: dict, for_date: str) -> bool:
     return True
 
 
+def retract_alerts(plot_id: int, for_date: str, still_active: set[str]) -> int:
+    """Remove today's alerts for a plot whose risk no longer fires (data changed, or a rule was corrected).
+    Returns how many were retracted."""
+    with write() as c:
+        q = delete(alerts).where(alerts.c.plot_id == plot_id, alerts.c.for_date == for_date)
+        if still_active:
+            q = q.where(alerts.c.risk_id.notin_(still_active))
+        return c.execute(q).rowcount
+
+
 def mark_notified(plot_id: int, risk_id: str, for_date: str) -> None:
     with write() as c:
         c.execute(update(alerts).where(alerts.c.plot_id == plot_id, alerts.c.risk_id == risk_id,

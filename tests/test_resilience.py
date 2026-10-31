@@ -340,3 +340,19 @@ def test_soil_no_data_does_not_fall_back(monkeypatch):
     monkeypatch.setattr(soil, "_wcs_cell", lambda *a: pytest.fail("WCS has the same masked map; must not be tried"))
     with pytest.raises(DataUnavailable, match="no soil data"):
         soil.soil_profile(22.4, 79.0)
+
+
+def test_monitor_retracts_alerts_whose_risk_disappeared(monkeypatch):
+    from app import db, monitor
+    pid = db.add_plot(name="t", lat=20.0, lon=74.0, crop="onion", sowing_date=None, language="hi",
+                      telegram_chat_id=None)
+    risk = lambda rid: {"id": rid, "severity": "medium", "title": rid, "detail": "", "action": "", "evidence": []}  # noqa: E731
+    reports = iter([{"risks": [risk("old_rule"), risk("heat_stress")], "errors": {}},
+                    {"risks": [risk("heat_stress")], "errors": {}}])
+    monkeypatch.setattr(monitor, "list_plots", lambda: [db.get_plot(pid)])
+    monkeypatch.setattr(monitor, "build_report", lambda *a: next(reports))
+    monitor.run_monitor()
+    s = monitor.run_monitor()
+    ids = {a["risk_id"] for a in db.recent_alerts() if a["plot_id"] == pid}
+    assert ids == {"heat_stress"} and s["retracted"] == 1
+    db.delete_plot(pid)

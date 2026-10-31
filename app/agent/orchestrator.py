@@ -113,6 +113,8 @@ def run(question: str, plot: dict, language: str = "en", history: list[dict] | N
     if st["known"]:
         stage_text = (f"day {st['days_after_sowing']} after sowing, {st['stage_label']}; typical harvest around "
                       f"{st['typical_harvest_date']}, i.e. {st['days_to_typical_harvest']} more days from today")
+        if st.get("season_warning"):
+            stage_text += f". WARNING: {st['season_warning']} Mention this to the farmer."
     else:
         stage_text = "unknown (no sowing date) — ask the farmer for it if the answer depends on the stage"
     ctx.evidence.append({k: v for k, v in st.items() if k != "kc_by_date"})

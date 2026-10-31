@@ -40,6 +40,19 @@ def crop_list() -> list[dict]:
     return [{"id": k, "names": v["names"], "season": v["season"]} for k, v in crops().items()]
 
 
+# Generous sowing windows for India's two main seasons (kharif ~Jun-Jul, rabi ~Oct-Nov), padded by a month or
+# more each side so late/early sowing is not flagged. Used only to warn about likely data-entry mistakes.
+SOWING_MONTHS = {"kharif": {5, 6, 7, 8, 9}, "rabi": {9, 10, 11, 12, 1}}
+
+
+def season_warning(crop: dict, sowing: date) -> str | None:
+    months = SOWING_MONTHS.get(crop.get("season", ""))
+    if months and sowing.month not in months:
+        return (f"{crop['names']['en']} is a {crop['season']} crop, usually not sown in {sowing.strftime('%B')}. "
+                "Please check the sowing date.")
+    return None
+
+
 def kc_on_day(crop: dict, day: int) -> tuple[float, str]:
     """FAO-56 Kc curve: flat in initial stage, linear rise in development, flat mid-season,
     linear decline in late season. `day` = days after sowing (0-based)."""
@@ -96,4 +109,5 @@ def crop_stage(crop_id: str, sowing_date: str | None, today: date | None = None)
         "days_to_typical_harvest": max(season_len - das, 0),
         "typical_harvest_date": (sown + timedelta(days=season_len)).isoformat(),
         "stage_source": s["source"],
+        "season_warning": season_warning(crop, sown),
     }

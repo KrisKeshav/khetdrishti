@@ -74,3 +74,11 @@ def test_water_balance_without_soil_moisture_does_not_invent_it():
     wb = water_balance(_days([0] * 7), {}, theta_now=None, fc=0.25, wp=0.12, p=0.5)
     assert wb["recommendation"] == "soil_moisture_unavailable"
     assert "available_water_pct" not in wb
+
+
+def test_season_warning_flags_unlikely_sowing_month():
+    from app.knowledge.crops import season_warning
+    assert season_warning(get_crop("chickpea"), date(2026, 5, 31))          # rabi crop sown in May
+    assert season_warning(get_crop("chickpea"), date(2026, 10, 25)) is None
+    assert season_warning(get_crop("soybean"), date(2026, 6, 20)) is None   # kharif in June
+    assert season_warning(get_crop("tomato"), date(2026, 3, 1)) is None     # 'any' season: never flagged

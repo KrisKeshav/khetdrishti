@@ -10,7 +10,7 @@ from datetime import date
 import httpx
 
 from app.config import settings
-from app.db import list_plots, mark_notified, save_alert
+from app.db import list_plots, mark_notified, retract_alerts, save_alert
 from app.engine.report import BadRequest, build_report
 
 TELEGRAM_URL = "https://api.telegram.org/bot{token}/sendMessage"
@@ -19,7 +19,7 @@ SEV_ICON = {"high": "🔴", "medium": "🟠", "low": "🟢"}
 
 def run_monitor() -> dict:
     today = date.today().isoformat()
-    summary = {"date": today, "plots": 0, "new_alerts": 0, "notified": 0, "errors": [], "details": []}
+    summary = {"date": today, "plots": 0, "new_alerts": 0, "retracted": 0, "notified": 0, "errors": [], "details": []}
     for plot in list_plots():
         summary["plots"] += 1
         try:
@@ -28,11 +28,13 @@ def run_monitor() -> dict:
             summary["errors"].append(f"plot {plot['id']}: {e}")
             continue
         new = []
+        active = {r["id"] for r in rep["risks"] if r["severity"] != "low"}
         for risk in rep["risks"]:
             if risk["severity"] == "low":
                 continue
             if save_alert(plot["id"], risk, today):
                 new.append(risk)
+        summary["retracted"] = summary.get("retracted", 0) + retract_alerts(plot["id"], today, active)
         summary["new_alerts"] += len(new)
         chat_id = plot.get("telegram_chat_id") or settings.telegram_default_chat_id
         for risk in new:

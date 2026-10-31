@@ -245,6 +245,10 @@ STATUS_CHECKS = {
 }
 
 
+SOILGRIDS_WCS_CHECK = ("https://maps.isric.org/mapserv?map=/map/clay.map&SERVICE=WCS&VERSION=2.0.1"
+                       "&REQUEST=GetCapabilities")
+
+
 @app.get("/api/status")
 def status():
     def ping(item):
@@ -261,6 +265,12 @@ def status():
 
     with ThreadPoolExecutor(max_workers=len(STATUS_CHECKS)) as ex:
         pings = list(ex.map(ping, STATUS_CHECKS.items()))
+    # SoilGrids has a working fallback (same maps via the WCS service): only show red if both routes are down.
+    for i, (name, ok, detail) in enumerate(pings):
+        if name == "SoilGrids" and not ok:
+            _, wcs_ok, wcs_detail = ping(("SoilGrids WCS", SOILGRIDS_WCS_CHECK))
+            if wcs_ok:
+                pings[i] = (name, True, f"REST API down ({detail}); map-service fallback OK ({wcs_detail})")
     return {
         "sources": {n: ok for n, ok, _ in pings},
         "source_details": {n: d for n, _, d in pings},

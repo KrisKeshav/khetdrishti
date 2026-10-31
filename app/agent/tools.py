@@ -19,6 +19,15 @@ from app.knowledge.crops import crop_stage, get_crop
 
 IST = timezone(timedelta(hours=5, minutes=30))
 
+WATER_ADVICE = {
+    "irrigate_now": "Irrigate now (soil water is below the crop's stress point and little rain is due)",
+    "irrigate_on_due_date": "Irrigation becomes due on irrigation_due_date at the forecast rate of crop water use",
+    "wait_rain_expected": "Hold irrigation: rain forecast in the next 3 days covers at least half of the deficit",
+    "no_irrigation_needed": "No irrigation needed in the next 7 days",
+    "soil_moisture_unavailable": "Soil moisture data unavailable; only forecast rain vs crop water use is known",
+    "past_season": "Crop is past its typical season length: it should be harvested, irrigation is not relevant",
+}
+
 
 @dataclass
 class PlotContext:
@@ -100,6 +109,8 @@ def get_water_balance(ctx: PlotContext) -> dict:
     if assumption:
         wb["assumption"] = assumption
     apply_stage(wb, st)
+    # Give the model plain words, not internal codes it might repeat to the farmer ("past_season").
+    wb["recommendation"] = WATER_ADVICE.get(wb["recommendation"], wb["recommendation"])
     if ctx.crop.get("note"):
         wb["crop_note"] = ctx.crop["note"]
     return _ok(ctx, wb, sources)
