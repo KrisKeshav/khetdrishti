@@ -1,0 +1,8 @@
+# Caddy obtains and renews a Let's Encrypt certificate for SITE_ADDRESS automatically.
+{$SITE_ADDRESS} {
+	encode gzip
+	# Server-Sent Events (live agent trace) must not be buffered.
+	reverse_proxy app:7860 {
+		flush_interval -1
+	}
+}

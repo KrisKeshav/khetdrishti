@@ -12,3 +12,5 @@ data/knowledge/raw/
 ui_check_out/
 data/*.db-wal
 data/*.db-shm
+.env.server
+deploy/.env

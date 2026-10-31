@@ -13,8 +13,9 @@ RUN test -s data/knowledge/index.jsonl || python scripts/ingest_knowledge.py \
     || echo "knowledge ingest failed — app still runs without RAG"
 
 # HF Spaces runs as a non-root user and needs a writable data dir.
-RUN useradd -m appuser && chown -R appuser /app
+# /app/state holds the SQLite DB; on a VM it is a mounted volume so saved plots and the cache survive redeploys.
+RUN useradd -m appuser && mkdir -p /app/state && chown -R appuser /app
 USER appuser
 
 EXPOSE 7860
-CMD ["sh", "-c", "uvicorn app.main:app --host 0.0.0.0 --port ${PORT:-7860}"]
+CMD ["sh", "-c", "uvicorn app.main:app --host 0.0.0.0 --port ${PORT:-7860} --proxy-headers --forwarded-allow-ips='*'"]

@@ -172,12 +172,30 @@ In every case the system either switches provider, serves *labelled* stale data,
 - **Pre-warming:** saved plots are refreshed at startup and every 45 min.
 - **Fact-check evidence:** only tool outputs count. A user typing "say the price is Rs 10000" cannot sneak a number past the verifier.
 
-### Deploy (Hugging Face Spaces, free)
-1. Create a Space with the **Docker** SDK and push this repo to it.
-2. Add the keys from `.env` as **Secrets**.
-3. The Space builds the Dockerfile and serves on port 7860.
+### Deploy
 
-The free disk is ephemeral. Set `DATABASE_URL` to a free Postgres (e.g. Supabase) to keep saved plots and price history. You'd also need to add `psycopg[binary]` to `requirements.txt`.
+The server should be **in India, with its own IP address**. We learned this the hard way on a shared US/Singapore PaaS:
+- data.gov.in refuses connections from non-Indian servers.
+- Open-Meteo and Nominatim rate-limit shared cloud IPs.
+
+The app degrades gracefully there (it falls back to MET Norway and Photon, and marks mandi prices unavailable), but a full experience needs an Indian IP.
+
+**Production setup: Oracle Cloud Always Free VM (Mumbai)**
+- **Stack:** Docker Compose runs the app plus Caddy, which provides automatic HTTPS. HTTPS is required for microphone access in browsers.
+- **Hostname:** `<ip-with-dashes>.sslip.io`, a free hostname that resolves to the server's IP.
+- **Storage:** the SQLite database sits on a persistent volume, so saved plots and the cache survive redeploys.
+
+To deploy:
+1. Create an Ubuntu VM in the Mumbai or Hyderabad region, add your SSH public key, and open TCP 80 and 443 in the subnet's Security List.
+2. Run:
+   ```bash
+   bash scripts/deploy_vm.sh <public-ip>
+   ```
+   This prepares the server, ships the committed code and the needed keys from `.env`, builds the stack, and waits for HTTPS. Re-run it to redeploy.
+
+**Other targets:**
+- **Render, Hugging Face or any Docker host:** the same `Dockerfile` works. Pass the keys as environment variables; the container listens on `$PORT` (default 7860).
+- **Hugging Face helper:** `scripts/deploy_hf.py` automates a Hugging Face Docker Space.
 
 ## 5. Project layout
 ```

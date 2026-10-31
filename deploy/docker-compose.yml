@@ -1,0 +1,38 @@
+# Production stack for a VM (Oracle Cloud Mumbai): the app + Caddy for automatic HTTPS.
+# HTTPS matters: browsers only allow the microphone (voice questions) on secure pages.
+# SITE_ADDRESS comes from deploy/.env (written by scripts/deploy_vm.sh), e.g. 129-154-1-2.sslip.io (a free hostname that resolves to the IP).
+services:
+  app:
+    build: ..
+    restart: unless-stopped
+    env_file: ../.env.server
+    environment:
+      DATABASE_URL: sqlite:////app/state/khetdrishti.db
+      PORT: "7860"
+    volumes:
+      - app-state:/app/state
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:7860/api/crops', timeout=5)"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    logging:
+      driver: json-file
+      options: {max-size: "10m", max-file: "3"}
+
+  caddy:
+    image: caddy:2
+    restart: unless-stopped
+    depends_on: [app]
+    ports: ["80:80", "443:443"]
+    environment:
+      SITE_ADDRESS: ${SITE_ADDRESS}
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy-data:/data
+      - caddy-config:/config
+
+volumes:
+  app-state:
+  caddy-data:
+  caddy-config:
