@@ -24,7 +24,7 @@ in their own language ("क्या इस हफ्ते सिंचाई �
 
 A daily monitor watches every registered plot and **pushes alerts unprompted**.
 
-**Live app:** `<add hosted URL>` · **Demo video:** `<add link>` · **Deck:** `<add link>`
+**Live app:** https://20-207-206-244.sslip.io (Azure, Central India) · **Demo video:** `<add link>` · **Deck:** `<add link>`
 
 ---
 

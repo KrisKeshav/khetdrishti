@@ -14,7 +14,9 @@ ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 cd "$ROOT"
 
 echo "==> bootstrap server (idempotent)"
-$SSH "$USER_AT" 'bash -s' < deploy/server_bootstrap.sh
+# Copy then run as a file (not `bash -s`): installers that read stdin would otherwise eat the rest of the script.
+$SSH "$USER_AT" 'cat > /tmp/khetdrishti_bootstrap.sh' < deploy/server_bootstrap.sh
+$SSH "$USER_AT" 'bash /tmp/khetdrishti_bootstrap.sh </dev/null' | tail -1
 
 echo "==> ship code (HEAD of git) + server env"
 git archive --format=tar HEAD | $SSH "$USER_AT" 'rm -rf /opt/khetdrishti/app && mkdir -p /opt/khetdrishti/app && tar -x -C /opt/khetdrishti/app'

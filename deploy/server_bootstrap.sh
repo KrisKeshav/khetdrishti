@@ -9,14 +9,17 @@ if ! command -v docker >/dev/null; then
   sudo usermod -aG docker "$USER"
 fi
 
-# Oracle Ubuntu images ship iptables rules that REJECT everything except SSH.
+# Oracle Ubuntu images ship iptables rules that REJECT everything except SSH; Azure/others have none.
+# Insert at the top of the chain so the ACCEPT always precedes any REJECT, whatever the image ships with.
 for port in 80 443; do
   if ! sudo iptables -C INPUT -p tcp --dport "$port" -j ACCEPT 2>/dev/null; then
-    sudo iptables -I INPUT 6 -m state --state NEW -p tcp --dport "$port" -j ACCEPT
+    sudo iptables -I INPUT 1 -p tcp --dport "$port" -j ACCEPT
   fi
 done
-sudo apt-get install -y -qq netfilter-persistent iptables-persistent >/dev/null 2>&1 || true
-sudo netfilter-persistent save >/dev/null 2>&1 || true
+# Non-interactive + stdin from /dev/null: iptables-persistent otherwise opens a debconf prompt that waits for input.
+sudo DEBIAN_FRONTEND=noninteractive apt-get install -y -qq netfilter-persistent iptables-persistent \
+  </dev/null >/dev/null 2>&1 || true
+sudo netfilter-persistent save </dev/null >/dev/null 2>&1 || true
 
 # 2 GB swap: pip installing numpy/rasterio wheels on a 1 GB micro VM can otherwise be OOM-killed.
 if ! swapon --show | grep -q /swapfile; then
