@@ -98,6 +98,14 @@ def build_report(lat: float, lon: float, crop_id: str, sowing_date: str | None =
         if not soil_res:
             wb["assumption"] = "SoilGrids unavailable — loam soil assumed for field capacity / wilting point"
         report["water"] = apply_stage(wb, stage)
+        rf = results.get("rainfall")
+        if wb.get("at_field_capacity") and rf and (rf.get("departure_pct") or 0) <= -20:
+            # Looks contradictory ("full soil" after a dry month) but is common: fine soils hold post-monsoon
+            # moisture for weeks. Say so, and give the farmer a field check, instead of leaving a puzzle.
+            wb["context_note"] = (f"Rain was {rf['imd_category']} over the last {rf['window_days']} days, yet the land-surface "
+                                  f"model still shows the root zone at field capacity — typical of {consts['texture']} "
+                                  "soils holding post-monsoon moisture. Field check: soil from 10-15 cm that forms a "
+                                  "ball when squeezed is still moist.")
 
     sat = results.get("satellite")
     if sat and not risk.satellite_sees_this_crop(report, sat):

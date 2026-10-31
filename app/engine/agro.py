@@ -143,6 +143,7 @@ def water_balance(days: list[dict], kc_by_date: dict[str, float], theta_now: flo
         "field_capacity_m3m3": fc,
         "wilting_point_m3m3": wp,
         "available_water_pct": round(max(0.0, min(avail_frac, 1.0)) * 100),
+        "at_field_capacity": theta_now >= fc,
         "current_depletion_mm": round(start_depletion, 1),
         "readily_available_water_mm": round(raw, 1),
         "irrigation_due_date": due_date,

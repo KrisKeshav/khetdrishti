@@ -296,13 +296,13 @@ function renderWater(wb, w) {
     <h3>Irrigation (FAO-56 water balance)</h3>
     <div class="big ${sev}">${esc(txt)}${wb.suggested_irrigation_mm ? ` · ~${esc(wb.suggested_irrigation_mm)} mm` : ""}${wb.recommendation === "irrigate_on_due_date" ? ` on ${fmtDate(wb.irrigation_due_date)}` : ""}</div>
     <dl class="kv">
-      <dt>Available soil water (0–27 cm)</dt><dd>${v(wb.available_water_pct, "%")}</dd>
+      <dt>Available soil water (0–27 cm)</dt><dd>${wb.at_field_capacity ? `Full <span class="muted small">(${esc(wb.root_zone_moisture_m3m3)} ≥ field capacity ${esc(wb.field_capacity_m3m3)} m³/m³)</span>` : v(wb.available_water_pct, "%")}</dd>
       <dt>Crop water use, next ${wb.horizon_days} days</dt><dd>${v(wb.crop_water_use_mm, " mm")}</dd>
       <dt>Forecast rain / effective</dt><dd>${v(wb.rain_forecast_mm)} / ${v(wb.effective_rain_mm, " mm")}</dd>
       <dt>Net balance</dt><dd>${v(wb.net_balance_mm, " mm")}</dd>
       <dt>Soil (FC / WP)</dt><dd>${esc(wb.soil_constants?.texture)} (${v(wb.field_capacity_m3m3 ?? wb.soil_constants?.fc)} / ${v(wb.wilting_point_m3m3 ?? wb.soil_constants?.wp)})</dd>
     </dl>
-    <p class="muted small">${esc([wb.stage_note, wb.assumption, wb.stage_assumption].filter(Boolean).join(" · ") || "Soil moisture: Open-Meteo land-surface model; Kc: FAO-56 Table 12.")}</p>`;
+    <p class="muted small">${esc([wb.context_note, wb.stage_note, wb.assumption, wb.stage_assumption].filter(Boolean).join(" · ") || "Soil moisture: Open-Meteo land-surface model; Kc: FAO-56 Table 12.")}</p>`;
 }
 
 function renderMarket(m, err) {
