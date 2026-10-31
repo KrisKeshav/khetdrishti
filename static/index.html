@@ -1,0 +1,191 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>KhetDrishti — plot-level climate risk agent</title>
+  <meta name="description" content="Voice-first, multilingual climate-risk and advisory agent for a single farm plot, built on live satellite, weather, soil and mandi data.">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Noto+Sans+Devanagari:wght@400;600&family=Noto+Sans:wght@400;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+  <link rel="stylesheet" href="/static/styles.css">
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><circle cx='16' cy='16' r='15' fill='%231f6f43'/><path d='M8 20c4-1 6-6 8-11 2 5 4 10 8 11' stroke='white' stroke-width='2.5' fill='none' stroke-linecap='round'/></svg>">
+</head>
+<body>
+<header class="topbar">
+  <div class="brand">
+    <svg viewBox="0 0 32 32" width="30" height="30" aria-hidden="true"><circle cx="16" cy="16" r="15" fill="var(--accent)"/><path d="M8 20c4-1 6-6 8-11 2 5 4 10 8 11" stroke="#fff" stroke-width="2.5" fill="none" stroke-linecap="round"/></svg>
+    <div>
+      <h1>KhetDrishti <span class="hi">खेतदृष्टि</span></h1>
+      <p>Plot-level climate-risk agent · live satellite, weather, soil &amp; mandi data</p>
+    </div>
+  </div>
+  <div id="status" class="status" title="Live status of upstream data sources"><span><i class="dot"></i>Checking data sources…</span></div>
+</header>
+
+<div id="offline" class="banner" hidden>You are offline — the app will reconnect automatically when the internet is back.</div>
+<div id="outageBanner" class="banner warn" hidden></div>
+<main class="layout">
+  <!-- ============ LEFT: plot selection ============ -->
+  <section class="panel left">
+    <div class="search">
+      <input id="placeSearch" type="search" placeholder="Search village / town…" autocomplete="off" aria-label="Search place">
+      <ul id="searchResults" class="search-results" hidden></ul>
+    </div>
+    <div id="map" aria-label="Map — click to drop a pin on your field"></div>
+    <p class="hint" id="pinInfo">Click on the map to drop a pin on your field.</p>
+    <div class="examples">
+      <span>Example locations:</span>
+      <button class="link" data-lat="20.0650" data-lon="74.1300" data-crop="onion" data-sow="2026-09-15">Niphad, Nashik</button>
+      <button class="link" data-lat="30.3790" data-lon="76.1420" data-crop="wheat" data-sow="2026-10-25">Patiala, Punjab</button>
+      <button class="link" data-lat="16.4350" data-lon="80.5640" data-crop="rice" data-sow="2026-07-20">Guntur, AP</button>
+    </div>
+
+    <form id="plotForm" class="form" autocomplete="off">
+      <label>Crop
+        <select id="crop" required></select>
+      </label>
+      <label>Sowing date <small>(optional)</small>
+        <input id="sowing" type="date">
+      </label>
+      <label>Language
+        <select id="language">
+          <option value="hi">हिन्दी Hindi</option>
+          <option value="mr">मराठी Marathi</option>
+          <option value="te">తెలుగు Telugu</option>
+          <option value="ta">தமிழ் Tamil</option>
+          <option value="kn">ಕನ್ನಡ Kannada</option>
+          <option value="bn">বাংলা Bengali</option>
+          <option value="gu">ગુજરાતી Gujarati</option>
+          <option value="pa">ਪੰਜਾਬੀ Punjabi</option>
+          <option value="ml">മലയാളം Malayalam</option>
+          <option value="en">English</option>
+        </select>
+      </label>
+      <div class="actions">
+        <button type="submit" class="btn primary" id="analyseBtn">Analyse plot</button>
+        <button type="button" class="btn" id="saveBtn" title="Register this plot for daily automatic monitoring">Save &amp; monitor</button>
+      </div>
+    </form>
+  </section>
+
+  <!-- ============ RIGHT: tabs ============ -->
+  <section class="panel right">
+    <nav class="tabs" role="tablist">
+      <button role="tab" class="tab active" data-tab="report">Field report</button>
+      <button role="tab" class="tab" data-tab="ask">Ask (voice)</button>
+      <button role="tab" class="tab" data-tab="monitor">Monitoring &amp; alerts</button>
+    </nav>
+
+    <!-- Field report -->
+    <div class="tabpane active" id="tab-report">
+      <div id="reportEmpty" class="empty">
+        <h2>Pick a field to begin</h2>
+        <p>Drop a pin on the map, choose the crop, and press <b>Analyse plot</b>. KhetDrishti pulls live Sentinel-2 imagery,
+          a 16-day forecast, soil moisture, 10-year rainfall history, soil texture and today's mandi prices for that exact spot.</p>
+      </div>
+      <div id="reportLoading" class="loading" hidden>
+        <div class="spinner"></div>
+        <ul id="loadSteps"></ul>
+      </div>
+      <div id="report" hidden>
+        <div class="report-head">
+          <div>
+            <h2 id="rPlace"></h2>
+            <p id="rMeta" class="muted"></p>
+          </div>
+          <span id="rStage" class="chip"></span>
+        </div>
+        <h3 class="section">Risks &amp; actions</h3>
+        <div id="risks" class="risks"></div>
+        <div class="grid2">
+          <div class="card">
+            <div class="card-h"><h3>Crop health — Sentinel-2 NDVI</h3><span id="ndviBadge" class="chip"></span></div>
+            <div class="chart"><canvas id="ndviChart"></canvas></div>
+            <p id="ndviNote" class="muted small"></p>
+          </div>
+          <div class="card">
+            <div class="card-h"><h3>16-day forecast</h3><span id="wxBadge" class="chip"></span></div>
+            <div class="chart"><canvas id="wxChart"></canvas></div>
+            <p id="wxNote" class="muted small"></p>
+          </div>
+        </div>
+        <div class="grid3">
+          <div class="card" id="waterCard"></div>
+          <div class="card" id="marketCard"></div>
+          <div class="card" id="soilCard"></div>
+        </div>
+        <details class="card sources">
+          <summary>Data sources &amp; provenance (<span id="srcCount">0</span>)</summary>
+          <ul id="sourceList"></ul>
+        </details>
+      </div>
+    </div>
+
+    <!-- Ask -->
+    <div class="tabpane" id="tab-ask">
+      <div class="ask-layout">
+        <div class="chat">
+          <div class="chips" id="suggestions">
+            <button class="chip-btn">Should I irrigate this week?</button>
+            <button class="chip-btn">Any weather risk for my crop in the next 7 days?</button>
+            <button class="chip-btn">Should I sell now or wait? Which mandi is best?</button>
+            <button class="chip-btn">How healthy is my crop compared to last year?</button>
+          </div>
+          <div id="chatLog" class="chat-log" aria-live="polite">
+            <p class="muted center" id="chatEmpty">Select a plot on the left, then ask in any Indian language — type or press the mic.</p>
+          </div>
+          <form id="askForm" class="ask-row">
+            <button type="button" id="micBtn" class="mic" title="Record your question" aria-label="Record voice question">
+              <svg viewBox="0 0 24 24" width="22" height="22"><path fill="currentColor" d="M12 15a3 3 0 0 0 3-3V6a3 3 0 1 0-6 0v6a3 3 0 0 0 3 3Zm5-3a5 5 0 0 1-10 0H5a7 7 0 0 0 6 6.92V21h2v-2.08A7 7 0 0 0 19 12h-2Z"/></svg>
+            </button>
+            <input id="question" type="text" placeholder="e.g. क्या इस हफ्ते सिंचाई करनी चाहिए?" maxlength="1000">
+            <button class="btn primary" id="sendBtn" type="submit">Ask</button>
+          </form>
+        </div>
+        <aside class="trace">
+          <h3>Agent trace <small class="muted">live</small></h3>
+          <ol id="trace"><li class="muted">Tool calls, reasoning and fact-checks appear here in real time.</li></ol>
+        </aside>
+      </div>
+    </div>
+
+    <!-- Monitor -->
+    <div class="tabpane" id="tab-monitor">
+      <div class="monitor-head">
+        <p class="muted">Saved plots are checked automatically every morning. New medium/high risks become alerts and are pushed to Telegram.</p>
+        <button class="btn primary" id="runMonitor">Run monitor now</button>
+      </div>
+      <div id="monitorResult" class="muted small"></div>
+      <h3 class="section">Saved plots</h3>
+      <div id="plotList" class="plot-list"></div>
+      <h3 class="section">Alerts</h3>
+      <div id="alertList" class="alert-list"></div>
+
+      <h3 class="section">Resilience lab</h3>
+      <div class="card lab">
+        <p class="muted small">Switch a provider off for 5 minutes and re-run the field report or ask a question: the app moves to
+          the next provider (e.g. Open-Meteo → MET Norway, primary LLM → backup model) or says honestly that the data is
+          unavailable. It never invents numbers.</p>
+        <div id="labTargets" class="lab-targets"></div>
+        <div class="actions">
+          <button class="btn primary" id="labStart" style="flex:0 0 auto">Simulate outage</button>
+          <button class="btn" id="labStop">Restore all</button>
+        </div>
+        <p id="labState" class="muted small"></p>
+      </div>
+    </div>
+  </section>
+</main>
+
+<footer class="foot">
+  Data: Copernicus Sentinel-2 · Open-Meteo · ERA5 · NASA POWER · ISRIC SoilGrids · Agmarknet / data.gov.in · © OpenStreetMap contributors · Imagery © Esri.
+  Advice is decision support; for chemicals consult your KVK or Kisan Call Centre 1800-180-1551.
+</footer>
+
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+<script src="/static/app.js"></script>
+</body>
+</html>

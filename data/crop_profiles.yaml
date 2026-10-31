@@ -1,0 +1,161 @@
+# Agronomic reference parameters (science constants, NOT data). Every value must cite a source.
+#
+# kc:           FAO-56 Table 12 single crop coefficients (Kc ini / mid / end), sub-humid climate.
+# stages_days:  FAO-56 Table 11 growth-stage lengths (initial / development / mid-season / late-season),
+#               using the tropical / South-Asian entry where one exists ("adapted" = closest entry, rounded).
+# p:            FAO-56 Table 22 soil-water depletion fraction before stress (readily available water).
+# heat_stress_c: daily max temperature above which reproductive-stage heat damage becomes likely.
+# agmarknet:    exact commodity name used by Agmarknet / data.gov.in mandi datasets.
+#
+# TEAM TODO before finale: cross-check every `verify: true` value against the ICAR / state agri-university
+# package of practices and update the source line.
+
+sources:
+  fao56: "Allen R.G. et al. (1998) FAO Irrigation and Drainage Paper 56, Crop evapotranspiration. https://www.fao.org/4/x0490e/x0490e00.htm"
+  hatfield2015: "Hatfield J.L. & Prueger J.H. (2015) Temperature extremes: effect on plant growth and development. Weather and Climate Extremes 10:4-10"
+  imd: "India Meteorological Department — terminology & criteria for heat wave, cold wave and rainfall intensity. https://mausam.imd.gov.in"
+
+crops:
+  wheat:
+    names: {en: Wheat, hi: गेहूं, mr: गहू, te: గోధుమ, ta: கோதுமை}
+    agmarknet: Wheat
+    season: rabi
+    kc: {ini: 0.3, mid: 1.15, end: 0.4, source: fao56}
+    stages_days: {ini: 15, dev: 25, mid: 50, late: 30, source: "fao56 Table 11 (spring wheat, Central India, Nov)"}
+    p: {value: 0.55, source: fao56}
+    heat_stress_c: {value: 34, source: hatfield2015, verify: true}
+
+  rice:
+    names: {en: Rice (paddy), hi: धान, mr: भात, te: వరి, ta: நெல்}
+    agmarknet: Paddy(Dhan)(Common)
+    season: kharif
+    kc: {ini: 1.05, mid: 1.2, end: 0.75, source: fao56}
+    stages_days: {ini: 30, dev: 30, mid: 60, late: 30, source: "fao56 Table 11 (rice, tropics)"}
+    p: {value: 0.2, source: fao56}
+    heat_stress_c: {value: 35, source: hatfield2015, verify: true}
+    note: "Paddy is usually kept flooded; the soil-depletion irrigation model is indicative only."
+
+  maize:
+    names: {en: Maize, hi: मक्का, mr: मका, te: మొక్కజొన్న, ta: மக்காச்சோளம்}
+    agmarknet: Maize
+    season: kharif
+    kc: {ini: 0.3, mid: 1.2, end: 0.5, source: fao56}
+    stages_days: {ini: 20, dev: 35, mid: 40, late: 30, source: "fao56 Table 11 (maize grain, India, Oct)"}
+    p: {value: 0.55, source: fao56}
+    heat_stress_c: {value: 35, source: hatfield2015, verify: true}
+
+  soybean:
+    names: {en: Soybean, hi: सोयाबीन, mr: सोयाबीन, te: సోయాబీన్, ta: சோயாபீன்}
+    agmarknet: Soyabean
+    season: kharif
+    kc: {ini: 0.4, mid: 1.15, end: 0.5, source: fao56}
+    stages_days: {ini: 15, dev: 20, mid: 45, late: 20, source: "adapted from fao56 Table 11 (soybeans, tropics)"}
+    p: {value: 0.5, source: fao56}
+    heat_stress_c: {value: 39, source: hatfield2015, verify: true}
+
+  cotton:
+    names: {en: Cotton, hi: कपास, mr: कापूस, te: పత్తి, ta: பருத்தி}
+    agmarknet: Cotton
+    season: kharif
+    kc: {ini: 0.35, mid: 1.18, end: 0.6, source: fao56}
+    stages_days: {ini: 30, dev: 50, mid: 55, late: 45, source: "adapted from fao56 Table 11 (cotton)"}
+    p: {value: 0.65, source: fao56}
+    heat_stress_c: {value: 35, source: "generic reproductive heat-stress threshold", verify: true}
+
+  sugarcane:
+    names: {en: Sugarcane, hi: गन्ना, mr: ऊस, te: చెరకు, ta: கரும்பு}
+    agmarknet: Sugarcane
+    season: annual
+    kc: {ini: 0.4, mid: 1.25, end: 0.75, source: fao56}
+    stages_days: {ini: 35, dev: 60, mid: 190, late: 120, source: "fao56 Table 11 (sugarcane, low latitudes)"}
+    p: {value: 0.65, source: fao56}
+    heat_stress_c: {value: 38, source: "generic threshold for C4 cane", verify: true}
+
+  groundnut:
+    names: {en: Groundnut, hi: मूंगफली, mr: भुईमूग, te: వేరుశనగ, ta: நிலக்கடலை}
+    agmarknet: Groundnut
+    season: kharif
+    kc: {ini: 0.4, mid: 1.15, end: 0.6, source: fao56}
+    stages_days: {ini: 25, dev: 35, mid: 45, late: 25, source: "fao56 Table 11 (groundnut, dry West Africa)"}
+    p: {value: 0.5, source: fao56}
+    heat_stress_c: {value: 35, source: "generic reproductive heat-stress threshold", verify: true}
+
+  onion:
+    names: {en: Onion, hi: प्याज, mr: कांदा, te: ఉల్లిపాయ, ta: வெங்காயம்}
+    agmarknet: Onion
+    season: rabi
+    kc: {ini: 0.7, mid: 1.05, end: 0.75, source: fao56}
+    stages_days: {ini: 15, dev: 25, mid: 60, late: 30, source: "adapted from fao56 Table 11 (onion, dry)"}
+    p: {value: 0.3, source: fao56}
+    heat_stress_c: {value: 35, source: "generic threshold", verify: true}
+
+  tomato:
+    names: {en: Tomato, hi: टमाटर, mr: टोमॅटो, te: టమాటా, ta: தக்காளி}
+    agmarknet: Tomato
+    season: any
+    kc: {ini: 0.6, mid: 1.15, end: 0.8, source: fao56}
+    stages_days: {ini: 30, dev: 40, mid: 40, late: 25, source: "fao56 Table 11 (tomato, arid region)"}
+    p: {value: 0.4, source: fao56}
+    heat_stress_c: {value: 35, source: hatfield2015, verify: true}
+
+  potato:
+    names: {en: Potato, hi: आलू, mr: बटाटा, te: బంగాళదుంప, ta: உருளைக்கிழங்கு}
+    agmarknet: Potato
+    season: rabi
+    kc: {ini: 0.5, mid: 1.15, end: 0.75, source: fao56}
+    stages_days: {ini: 25, dev: 30, mid: 45, late: 30, source: "fao56 Table 11 (potato, semi-arid)"}
+    p: {value: 0.35, source: fao56}
+    heat_stress_c: {value: 30, source: "generic threshold for tuber initiation", verify: true}
+
+  chickpea:
+    names: {en: Chickpea, hi: चना, mr: हरभरा, te: శనగ, ta: கொண்டைக்கடலை}
+    agmarknet: Bengal Gram(Gram)(Whole)
+    season: rabi
+    kc: {ini: 0.4, mid: 1.0, end: 0.35, source: fao56}
+    stages_days: {ini: 20, dev: 30, mid: 40, late: 20, source: "adapted from fao56 Table 11 (legumes)"}
+    p: {value: 0.5, source: fao56}
+    heat_stress_c: {value: 35, source: "generic reproductive heat-stress threshold", verify: true}
+
+  bajra:
+    names: {en: Pearl millet (bajra), hi: बाजरा, mr: बाजरी, te: సజ్జలు, ta: கம்பு}
+    agmarknet: Bajra(Pearl Millet/Cumbu)
+    season: kharif
+    kc: {ini: 0.3, mid: 1.0, end: 0.3, source: fao56}
+    stages_days: {ini: 15, dev: 25, mid: 40, late: 25, source: "fao56 Table 11 (millet, Pakistan, Jun)"}
+    p: {value: 0.55, source: fao56}
+    heat_stress_c: {value: 40, source: "generic threshold for heat-tolerant millet", verify: true}
+
+  jowar:
+    names: {en: Sorghum (jowar), hi: ज्वार, mr: ज्वारी, te: జొన్నలు, ta: சோளம்}
+    agmarknet: Jowar(Sorghum)
+    season: kharif
+    kc: {ini: 0.3, mid: 1.05, end: 0.55, source: fao56}
+    stages_days: {ini: 20, dev: 35, mid: 40, late: 30, source: "fao56 Table 11 (sorghum)"}
+    p: {value: 0.55, source: fao56}
+    heat_stress_c: {value: 38, source: "generic threshold", verify: true}
+
+  mustard:
+    names: {en: Mustard, hi: सरसों, mr: मोहरी, te: ఆవాలు, ta: கடுகு}
+    agmarknet: Mustard
+    season: rabi
+    kc: {ini: 0.35, mid: 1.08, end: 0.35, source: fao56}
+    stages_days: {ini: 25, dev: 35, mid: 45, late: 25, source: "adapted from fao56 Table 11 (rapeseed)"}
+    p: {value: 0.6, source: fao56}
+    heat_stress_c: {value: 32, source: "generic threshold for rapeseed flowering", verify: true}
+
+# IMD thresholds used by the risk engine (official criteria, plains).
+imd:
+  rain_intensity_mm:   # 24-hour rainfall categories
+    moderate: 15.6
+    heavy: 64.5
+    very_heavy: 115.6
+    extremely_heavy: 204.5
+  rainy_day_mm: 2.5
+  cold_wave_tmin_c: 4.0
+  severe_heat_tmax_c: 45.0
+  heat_wave_tmax_c: 40.0
+  seasonal_anomaly_pct:   # departure from normal
+    large_excess: 60
+    excess: 20
+    deficient: -20
+    large_deficient: -60

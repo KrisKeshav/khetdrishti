@@ -1,0 +1,4 @@
+-r requirements.txt
+playwright==1.64.1
+# deploy tool only (<1.0: hub 1.x+ needs click>=8.4 which conflicts with gTTS)
+huggingface_hub==0.36.2

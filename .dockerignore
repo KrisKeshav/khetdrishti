@@ -1,0 +1,10 @@
+.venv
+.env
+.vscode
+__pycache__
+.pytest_cache
+ui_check_out
+data/*.db
+data/*.db-wal
+data/*.db-shm
+.git

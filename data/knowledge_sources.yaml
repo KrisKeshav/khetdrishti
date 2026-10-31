@@ -1,0 +1,22 @@
+# Real agronomy documents ingested into the RAG index by scripts/ingest_knowledge.py.
+# Add more (ICAR package-of-practices PDFs, state agri-university pages) — URL or drop PDFs into data/knowledge/pdfs/.
+sources:
+  # FAO Irrigation & Drainage Paper 56 — crop water requirements
+  - {url: "https://www.fao.org/4/x0490e/x0490e0a.htm", publisher: FAO, title: "FAO-56 Ch.5 — Introduction to crop evapotranspiration (ETc)"}
+  - {url: "https://www.fao.org/4/x0490e/x0490e0b.htm", publisher: FAO, title: "FAO-56 Ch.6 — ETc single crop coefficient (Kc)"}
+  - {url: "https://www.fao.org/4/x0490e/x0490e0e.htm", publisher: FAO, title: "FAO-56 Ch.8 — ETc under soil water stress conditions"}
+
+  # Tamil Nadu Agricultural University (TNAU) Agritech Portal — crop production practices
+  - {url: "https://agritech.tnau.ac.in/agriculture/CropProduction/Pulses/pulses_soybean.html", publisher: TNAU, crop: Soybean, title: "TNAU — Soybean crop production"}
+  - {url: "https://agritech.tnau.ac.in/agriculture/CropProduction/Pulses/pulses_bengalgram.html", publisher: TNAU, crop: Chickpea, title: "TNAU — Bengal gram (chickpea) crop production"}
+  - {url: "https://agritech.tnau.ac.in/agriculture/millets_maize.html", publisher: TNAU, crop: Maize, title: "TNAU — Maize crop production"}
+  - {url: "https://agritech.tnau.ac.in/agriculture/millets_sorghum.html", publisher: TNAU, crop: Sorghum, title: "TNAU — Sorghum (jowar) crop production"}
+  - {url: "https://agritech.tnau.ac.in/agriculture/millets_cumbu.html", publisher: TNAU, crop: Pearl millet, title: "TNAU — Pearl millet (cumbu/bajra) crop production"}
+  - {url: "https://agritech.tnau.ac.in/agriculture/cereals_wheat.html", publisher: TNAU, crop: Wheat, title: "TNAU — Wheat crop production"}
+  - {url: "https://agritech.tnau.ac.in/agriculture/sugarcrops_sugarcane.html", publisher: TNAU, crop: Sugarcane, title: "TNAU — Sugarcane crop production"}
+  - {url: "https://agritech.tnau.ac.in/expert_system/paddy/cultivationpractices.html", publisher: TNAU, crop: Rice, title: "TNAU — Paddy cultivation practices"}
+
+  # TNAU — managing climate stress
+  - {url: "https://agritech.tnau.ac.in/agriculture/agri_drought.html", publisher: TNAU, title: "TNAU — Drought management in crops"}
+  - {url: "https://agritech.tnau.ac.in/agriculture/agri_flood.html", publisher: TNAU, title: "TNAU — Flood / waterlogging management in crops"}
+  - {url: "https://agritech.tnau.ac.in/agriculture/agri_temperature.html", publisher: TNAU, title: "TNAU — High and low temperature stress management"}
