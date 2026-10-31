@@ -55,7 +55,8 @@ document.querySelectorAll(".tab").forEach((t) => t.addEventListener("click", () 
 async function loadStatus() {
   try {
     const s = await api("/api/status");
-    const dots = Object.entries(s.sources).map(([k, ok]) => `<span><i class="dot ${ok ? "ok" : "bad"}"></i>${esc(k)}</span>`);
+    const dots = Object.entries(s.sources).map(([k, ok]) =>
+      `<span title="${esc((s.source_details || {})[k] || "")}"><i class="dot ${ok ? "ok" : "bad"}"></i>${esc(k)}</span>`);
     if (!s.config.llm) dots.push('<span><i class="dot bad"></i>LLM key missing</span>');
     if (!s.config.mandi_key) dots.push('<span title="Using data.gov.in public sample key (10 rows/call)"><i class="dot warn"></i>mandi sample key</span>');
     $("status").innerHTML = dots.join("");

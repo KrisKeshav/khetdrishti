@@ -4,6 +4,7 @@ Run locally:  uvicorn app.main:app --reload --port 8000
 """
 import json
 import logging
+import time
 from concurrent.futures import ThreadPoolExecutor
 from contextlib import asynccontextmanager
 from datetime import date, datetime, timezone
@@ -239,7 +240,7 @@ STATUS_CHECKS = {
     # Ping the dataset we actually use (the key is added server-side in status(), never sent to the browser).
     "data.gov.in": "https://api.data.gov.in/resource/9ef84268-d588-465a-a308-a864a43d0070?format=json&limit=1",
     "SoilGrids": "https://rest.isric.org/soilgrids/v2.0/properties/layers",
-    "Nominatim": "https://nominatim.openstreetmap.org/status?format=json",
+    "Geocoding (OSM)": "https://photon.komoot.io/reverse?lat=20&lon=78&limit=1",
     "Groq": "https://api.groq.com/openai/v1/models",
 }
 
@@ -249,17 +250,20 @@ def status():
     def ping(item):
         name, url = item
         params = {"api-key": settings.data_gov_key} if name == "data.gov.in" else None
+        t = time.perf_counter()
         try:
             r = httpx.get(url, params=params, timeout=10, headers={"User-Agent": settings.contact_ua})
-            # Groq answers 401 without a key: reachable is what we want to show.
-            return name, r.status_code < 500
-        except httpx.HTTPError:
-            return name, False
+            # Groq answers 401 without a key: reachable is what we want to show. 429 = we are being throttled.
+            ok = r.status_code < 500 and r.status_code != 429
+            return name, ok, f"HTTP {r.status_code} in {time.perf_counter() - t:.1f}s"
+        except httpx.HTTPError as e:
+            return name, False, f"{type(e).__name__} after {time.perf_counter() - t:.1f}s"
 
     with ThreadPoolExecutor(max_workers=len(STATUS_CHECKS)) as ex:
-        sources = dict(ex.map(ping, STATUS_CHECKS.items()))
+        pings = list(ex.map(ping, STATUS_CHECKS.items()))
     return {
-        "sources": sources,
+        "sources": {n: ok for n, ok, _ in pings},
+        "source_details": {n: d for n, _, d in pings},
         "config": {
             "llm": pool.configured,
             "llm_models": settings.groq_model_chain,

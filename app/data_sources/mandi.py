@@ -90,7 +90,7 @@ def _haversine_km(a, b) -> float:
 
 
 def market_summary(state: str, district: str, commodity: str, lat: float, lon: float,
-                   locate_markets: int = 4) -> dict:
+                   locate_markets: int = 8) -> dict:
     """Latest prices for `commodity` in `state`, the plot's own district first, nearest markets by
     distance, and the state-median price trend over 7 and 30 days."""
     rows, prov_live = live_prices(state, commodity)
@@ -123,13 +123,13 @@ def market_summary(state: str, district: str, commodity: str, lat: float, lon: f
     match = difflib.get_close_matches(district, districts, n=1, cutoff=0.6) if district else []
     home = [r for r in today_rows if match and r["district"] == match[0]]
 
-    # Nearest markets: geocode a few market names (cached for 30 days; Nominatim allows 1 req/s).
+    # Nearest markets: geocode market towns (cached for 30 days), home district first, in parallel.
     candidates = home + [r for r in today_rows if r not in home]
-    located = []
-    for r in candidates[:locate_markets]:
-        pos = geocode.locate_market(r["market"], r["district"], r["state"])
-        if pos:
-            located.append({**r, "distance_km": round(_haversine_km((lat, lon), pos))})
+    with ThreadPoolExecutor(max_workers=4) as ex:
+        positions = list(ex.map(lambda r: geocode.locate_market(r["market"], r["district"], r["state"]),
+                                candidates[:locate_markets]))
+    located = [{**r, "distance_km": round(_haversine_km((lat, lon), pos))}
+               for r, pos in zip(candidates, positions) if pos]
     located.sort(key=lambda r: r["distance_km"])
 
     # Trend vs 7 and 30 days ago, from the official history dataset. Compared like-for-like: only markets that

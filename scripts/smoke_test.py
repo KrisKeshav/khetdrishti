@@ -89,7 +89,7 @@ def _rag():
     return f"{s['chunks']} chunks from {s['documents']} documents"
 
 
-check("Nominatim (geocode)", _geo)
+check("Geocoding", _geo)
 check("Weather forecast", _weather)
 check("Sentinel-2 NDVI", _sat)
 check("Rainfall anomaly", _rain)

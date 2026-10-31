@@ -105,6 +105,68 @@ def test_weather_all_providers_down_raises(monkeypatch):
         weather.forecast(20, 74)
 
 
+# ------------------------------------------------------------------ geocoding fallback chain
+
+@pytest.fixture
+def geo(monkeypatch):
+    from app.data_sources import geocode
+
+    def nominatim_blocked(path, params):
+        raise DataUnavailable("OpenStreetMap Nominatim", "HTTP 429")
+    monkeypatch.setattr(geocode, "_nominatim", nominatim_blocked)
+    return geocode
+
+
+def _routes(monkeypatch, geo, photon, om_results):
+    def fake_fetch(source, url, **kw):
+        if "photon" in url:
+            return photon, fetch.Provenance(source, url, "2026-10-31T00:00:00+00:00", "live")
+        return {"results": om_results}, fetch.Provenance(source, url, "2026-10-31T00:00:00+00:00", "live")
+    monkeypatch.setattr(geo, "fetch_json", fake_fetch)
+
+
+def test_reverse_falls_back_to_photon_and_resolves_district(monkeypatch, geo):
+    _routes(monkeypatch, geo,
+            {"features": [{"properties": {"countrycode": "IN", "state": "Andhra Pradesh", "county": "Mangalagiri Mandal",
+                                          "city": "Mangalagiri"}}]},
+            [{"name": "Mangalagiri", "admin1": "Kerala", "admin2": "Wrong"},
+             {"name": "Mangalagiri", "admin1": "Andhra Pradesh", "admin2": "Guntūr District"}])
+    loc = geo.reverse(16.43, 80.56)
+    assert loc["state"] == "Andhra Pradesh" and loc["district"] == "Guntur"   # right state, diacritics + suffix removed
+
+
+def test_photon_sea_and_foreign_points_rejected(monkeypatch, geo):
+    _routes(monkeypatch, geo, {"features": []}, [])
+    with pytest.raises(geo.OutsideIndia):
+        geo.reverse(15.0, 72.0)
+    _routes(monkeypatch, geo, {"features": [{"properties": {"countrycode": "NP", "country": "Nepal"}}]}, [])
+    with pytest.raises(geo.OutsideIndia, match="Nepal"):
+        geo.reverse(27.7, 85.3)
+
+
+def test_search_falls_back_to_open_meteo(monkeypatch, geo):
+    _routes(monkeypatch, geo, {}, [{"name": "Lasalgaon", "admin1": "Maharashtra", "admin2": "Nashik",
+                                    "latitude": 20.14, "longitude": 74.24}])
+    res = geo.search("Lasalgaon, Nashik")
+    assert res[0]["lat"] == 20.14 and "Nashik" in res[0]["name"]
+
+
+def test_nominatim_circuit_breaker(monkeypatch):
+    from app.data_sources import geocode
+    calls = []
+
+    def refusing(source, url, **kw):
+        calls.append(url)
+        raise DataUnavailable(source, "HTTP 429")
+    monkeypatch.setattr(geocode, "fetch_json", refusing)
+    monkeypatch.setattr(geocode, "_nominatim_blocked_until", 0.0)
+    monkeypatch.setattr(geocode, "_throttle", lambda: None)
+    for _ in range(3):
+        with pytest.raises(DataUnavailable):
+            geocode._nominatim("reverse", {})
+    assert len(calls) == 1          # after the first refusal, Nominatim is skipped instead of retried
+
+
 # ------------------------------------------------------------------ report builder
 
 @pytest.fixture
