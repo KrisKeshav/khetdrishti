@@ -39,3 +39,9 @@ def test_strip_removes_only_bad_sentences():
     text = "Max will be 36 °C. Rain will be 45 mm."
     out = strip_unsupported(text, verify(text, ev, []))
     assert "36" in out and "45" not in out
+
+
+def test_invented_tags_are_mapped_to_real_sources():
+    from app.agent.orchestrator import _fix_tags
+    out = _fix_tags("a [risk_alerts] b [get_mandi_prices] c [Water‑Balance] d [Open-Meteo] e [Sentinel-2] f [weird]")
+    assert out == "a [IMD] b [Agmarknet] c [FAO-56] d [Open-Meteo] e [Sentinel-2] f [weird]"

@@ -11,6 +11,7 @@ run() is a generator of event dicts; the API streams them to the browser as Serv
 see the reasoning, tool calls, timings, sources and verification live.
 """
 import json
+import re
 import time
 import unicodedata
 from concurrent.futures import ThreadPoolExecutor, as_completed
@@ -36,10 +37,35 @@ TOOL_TAGS = {
 }
 
 
+KNOWN_TAGS = {"Open-Meteo", "MET Norway", "Sentinel-2", "Agmarknet", "SoilGrids", "ERA5", "NASA POWER", "FAO-56",
+              "IMD", "Agronomy docs"}
+# Models also invent tags like [risk_alerts] or [Water-Balance]; map them to a real source by keyword (first match).
+TAG_KEYWORDS = [
+    (("ndvi", "satellite", "sentinel", "crop_health", "crop health"), "Sentinel-2"),
+    (("mandi", "price", "market", "agmarknet"), "Agmarknet"),
+    (("soilgrids", "soil_profile", "soil profile", "texture"), "SoilGrids"),
+    (("water", "irrigat", "stage", "fao", "kc"), "FAO-56"),
+    (("rainfall", "anomaly", "era5", "normal"), "ERA5"),
+    (("weather", "forecast", "meteo"), "Open-Meteo"),
+    (("risk", "imd", "alert"), "IMD"),
+    (("knowledge", "agronomy", "document", "tnau"), "Agronomy docs"),
+]
+TAG_RE = re.compile(r"\[([^\]\n]{1,40})\]")
+
+
 def _fix_tags(text: str) -> str:
-    for tool, tag in TOOL_TAGS.items():
-        text = text.replace(f"[{tool}]", f"[{tag}]")
-    return text
+    def repl(m):
+        tag = m.group(1).strip()
+        if tag in KNOWN_TAGS:
+            return m.group(0)
+        if tag in TOOL_TAGS:
+            return f"[{TOOL_TAGS[tag]}]"
+        low = tag.lower().replace("‑", "-")
+        for words, source in TAG_KEYWORDS:
+            if any(w in low for w in words):
+                return f"[{source}]"
+        return m.group(0)
+    return TAG_RE.sub(repl, text)
 
 
 def _ascii_digits(text: str) -> str:

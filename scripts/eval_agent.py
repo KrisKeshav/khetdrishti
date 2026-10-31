@@ -110,7 +110,9 @@ def main():
     print(f"\n{passed}/{len(results)} passed · {verified}/{len(results)} answers fully verified · "
           f"median latency {lat[len(lat) // 2]} s · max {lat[-1]} s")
 
-    out = Path(__file__).resolve().parent.parent / "docs" / "eval_results.md"
+    # Only a full run may replace the published report; filtered runs go to a scratch file.
+    name = "eval_results.md" if not only else "eval_results_partial.md"
+    out = Path(__file__).resolve().parent.parent / "docs" / name
     out.parent.mkdir(exist_ok=True)
     lines = [f"# Agent evaluation — {datetime.now():%d %b %Y %H:%M}", "",
              f"**{passed}/{len(results)} scenarios passed · {verified}/{len(results)} answers fully verified · "

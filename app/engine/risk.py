@@ -6,6 +6,16 @@ Why deterministic: alerts must be reproducible and auditable; the LLM explains t
 from app.knowledge.crops import imd
 
 SEVERITY_ORDER = {"high": 0, "medium": 1, "low": 2}
+MIN_DAYS_AFTER_SOWING_FOR_NDVI = 30
+
+
+def _satellite_sees_this_crop(report: dict, sat: dict) -> bool:
+    sowing = (report.get("plot") or {}).get("sowing_date")
+    if not sowing or not (report.get("stage") or {}).get("known"):
+        return False
+    from datetime import date
+    days = (date.fromisoformat(sat["latest_date"]) - date.fromisoformat(sowing)).days
+    return days >= MIN_DAYS_AFTER_SOWING_FOR_NDVI
 
 
 def _ev(label, value, unit, source):
@@ -185,9 +195,11 @@ def assess(report: dict) -> list[dict]:
                           "detail": "Soil is dry, but forecast rain in the next 3 days covers at least half of the deficit.",
                           "action": "Skip irrigation and re-check after the rain.", "dates": [], "evidence": ev})
 
-    # 8. Crop vigour from satellite NDVI.
+    # 8. Crop vigour from satellite NDVI — only when the image can actually show THIS crop: sowing date known and
+    # the latest pass at least 30 days after sowing. Otherwise the pixels show a previous crop or a bare,
+    # harvested field, and "greenness below last year" would be a false alarm.
     sat = report.get("satellite")
-    if sat:
+    if sat and _satellite_sees_this_crop(report, sat):
         ssrc = sat["sources"][0]["source"]
         chg = sat.get("change_vs_last_year_pct")
         if chg is not None and chg <= -20:
@@ -200,7 +212,7 @@ def assess(report: dict) -> list[dict]:
                           "dates": [], "evidence": [_ev("NDVI now", sat["latest_ndvi"], "", ssrc),
                                                     _ev("NDVI last year", sat["last_year_ndvi"], "", ssrc)]})
         d30 = sat.get("ndvi_change_30d")
-        if d30 is not None and d30 <= -0.1 and stage_id in ("dev", "mid", "unknown"):
+        if d30 is not None and d30 <= -0.1 and stage_id in ("dev", "mid"):
             risks.append({"id": "ndvi_declining", "category": "crop_health", "severity": "medium",
                           "title": "Crop greenness falling",
                           "detail": f"NDVI dropped by {abs(d30)} since {sat['ndvi_change_30d_ref_date']} during a stage "

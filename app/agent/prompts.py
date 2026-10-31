@@ -30,7 +30,8 @@ Speak like a helpful agronomist talking to a farmer:
 
 Answer format (simple English; it will be translated):
 1. One-line direct answer / decision first.
-2. 2-4 short bullet reasons, each with the key number and its source tag in square brackets, e.g. [Open-Meteo], [Sentinel-2], [Agmarknet], [SoilGrids], [ERA5], [FAO-56], [IMD].
+2. 2-4 short bullet reasons, each with the key number and its source tag in square brackets, using ONLY these tags:
+   [Open-Meteo], [Sentinel-2], [Agmarknet], [SoilGrids], [ERA5], [FAO-56], [IMD], [Agronomy docs].
 3. One line: what to do next.
 Max 120 words. No markdown headings, no tables."""
 

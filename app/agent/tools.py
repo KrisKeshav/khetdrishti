@@ -8,7 +8,7 @@ import json
 from concurrent.futures import ThreadPoolExecutor
 from concurrent.futures import TimeoutError as FutureTimeout
 from dataclasses import dataclass, field
-from datetime import datetime, timedelta, timezone
+from datetime import date, datetime, timedelta, timezone
 
 from app.data_sources import climate, mandi, satellite, soil, weather
 from app.engine.agro import soil_water_constants, water_balance
@@ -109,6 +109,15 @@ def get_crop_health_satellite(ctx: PlotContext) -> dict:
     r = satellite.ndvi_report(ctx.lat, ctx.lon)
     data = {k: v for k, v in r.items() if k not in ("series", "last_year_series", "sources")}
     data["recent_observations"] = [{"date": s["date"], "ndvi": s["ndvi"]} for s in r["series"][-6:]]
+    # Same rule as the risk engine: only attribute greenness to this crop if it has been in the field long enough.
+    if not ctx.sowing_date:
+        data["interpretation"] = ("Sowing date unknown: this greenness may belong to a previous crop or a harvested "
+                                  "field. Do not judge the current crop's health from it; ask for the sowing date.")
+    else:
+        days = (date.fromisoformat(r["latest_date"]) - date.fromisoformat(ctx.sowing_date)).days
+        if days < 30:
+            data["interpretation"] = (f"Latest image is only {max(days, 0)} days after sowing (or before it): it mostly "
+                                      "shows soil / the previous crop, not this crop's health yet.")
     return _ok(ctx, data, r["sources"])
 
 

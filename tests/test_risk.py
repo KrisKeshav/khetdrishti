@@ -52,3 +52,26 @@ def test_risks_sorted_by_severity():
     risks = assess(report([day(0, tmax=46, rain=120)] + [day(i) for i in range(1, 7)]))
     order = {"high": 0, "medium": 1, "low": 2}
     assert [order[r["severity"]] for r in risks] == sorted(order[r["severity"]] for r in risks)
+
+
+def _sat(latest="2026-10-25", change_pct=-30, d30=-0.2):
+    return {"sources": SRC, "latest_ndvi": 0.3, "latest_date": latest, "last_year_ndvi": 0.5,
+            "change_vs_last_year_pct": change_pct, "ndvi_change_30d": d30, "ndvi_change_30d_ref_date": "2026-09-25"}
+
+
+def test_ndvi_risks_skipped_without_sowing_date():
+    rep = report([day(i) for i in range(7)], stage="unknown", satellite=_sat())
+    rep["stage"]["known"] = False
+    assert not {"ndvi_below_last_year", "ndvi_declining"} & ids(assess(rep))
+
+
+def test_ndvi_risks_skipped_when_crop_just_sown():
+    rep = report([day(i) for i in range(7)], stage="dev", satellite=_sat(latest="2026-10-25"))
+    rep["plot"]["sowing_date"], rep["stage"]["known"] = "2026-10-10", True     # 15 days: image shows soil
+    assert not {"ndvi_below_last_year", "ndvi_declining"} & ids(assess(rep))
+
+
+def test_ndvi_risks_fire_for_established_crop():
+    rep = report([day(i) for i in range(7)], stage="mid", satellite=_sat(latest="2026-10-25"))
+    rep["plot"]["sowing_date"], rep["stage"]["known"] = "2026-08-01", True
+    assert {"ndvi_below_last_year", "ndvi_declining"} <= ids(assess(rep))
