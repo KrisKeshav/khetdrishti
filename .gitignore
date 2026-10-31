@@ -15,3 +15,4 @@ data/*.db-shm
 .env.server
 deploy/.env
 docs/eval_results_partial.md
+PROJECT_LINKS.md
