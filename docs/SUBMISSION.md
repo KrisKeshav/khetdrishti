@@ -78,6 +78,6 @@ One KVK worker can monitor hundreds of plots, getting alerts only where action i
 | Field | Value |
 |---|---|
 | Live prototype link | https://20-207-206-244.sslip.io |
-| Demo video link | _(to add after recording)_ |
+| Demo video link | https://youtu.be/zi48UsYoi1M  (tip for viewers: ⚙ Settings → Quality → 1080p) |
 | Public GitHub | https://github.com/KrisKeshav/khetdrishti |
-| Presentation / pitch deck link | _(to add after the deck is made)_ |
+| Presentation / pitch deck link | https://docs.google.com/presentation/d/1bZqWbX9xAiVZ-QRc8e0sADihvakE9EWr/edit?usp=sharing |
