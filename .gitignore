@@ -16,3 +16,6 @@ data/*.db-shm
 deploy/.env
 docs/eval_results_partial.md
 PROJECT_LINKS.md
+*.mp4
+*.mov
+*.mkv
