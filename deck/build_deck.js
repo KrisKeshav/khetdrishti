@@ -20,8 +20,9 @@ async function icon(Comp, color = G.white, size = 256) {
   const png = await sharp(Buffer.from(svg)).resize(size, size).png().toBuffer();
   return "image/png;base64," + png.toString("base64");
 }
-async function jpg(file, width = 1600) {
-  const buf = await sharp(path.join(IMG_DIR, file)).resize({ width }).jpeg({ quality: 82 }).toBuffer();
+async function jpg(file, width = 2400) {
+  // High-res, high-quality: screenshots are captured at 2x so UI text stays sharp when the slide is enlarged.
+  const buf = await sharp(path.join(IMG_DIR, file)).resize({ width, withoutEnlargement: true }).jpeg({ quality: 92, chromaSubsampling: "4:4:4" }).toBuffer();
   const meta = await sharp(buf).metadata();
   return { data: "image/jpeg;base64," + buf.toString("base64"), ratio: meta.height / meta.width };
 }
@@ -54,8 +55,8 @@ async function jpg(file, width = 1600) {
     bolt: await icon(fa.FaBolt), plug: await icon(fa.FaPlug), arrow: await icon(fa.FaArrowRight, G.saffron),
     rotate: await icon(fa.FaRotateLeft, G.saffron),
   };
-  const shot = { report: await jpg("report_top.png"), charts: await jpg("charts.png", 1400),
-    ask: await jpg("ask.png", 1400), outage: await jpg("outage.png", 1400), cards: await jpg("cards.png", 1400) };
+  const shot = { report: await jpg("report_top.png"), charts: await jpg("charts.png"),
+    ask: await jpg("ask.png"), outage: await jpg("outage.png"), cards: await jpg("cards.png") };
 
   const circleIcon = (slide, img, x, y, d, fill, name) => {
     slide.addShape(pres.shapes.OVAL, { x, y, w: d, h: d, fill: { color: fill }, line: { color: fill }, objectName: name + " circle" });
@@ -99,7 +100,7 @@ async function jpg(file, width = 1600) {
       { text: "   ·   Code: ", options: { bold: true, color: G.saffron } },
       { text: "github.com/KrisKeshav/khetdrishti", options: { color: G.white, hyperlink: { url: "https://github.com/KrisKeshav/khetdrishti" } } }],
       { x: 0.6, y: 5.85, w: 6.8, h: 0.35, fontSize: 12 });
-    T(s, "Team: Kris Keshav (IIT Roorkee)", { x: 0.6, y: 6.35, w: 6.6, h: 0.35, fontSize: 13, color: "D4E7DB" });
+    T(s, "Team: Kris Keshav · Shivam Bansal (IIT Roorkee)", { x: 0.6, y: 6.35, w: 6.6, h: 0.35, fontSize: 13, color: "D4E7DB" });
     framedImage(s, shot.report, 7.45, 1.1, 5.35, "Live app screenshot: field report");
     s.addNotes("Introduce KhetDrishti: advice for ONE specific farm plot, built only on live public data, spoken in the farmer's language, and every number verified before the farmer hears it. The screenshot is the live app running in Central India.");
   }
@@ -176,27 +177,28 @@ async function jpg(file, width = 1600) {
       ["Translate & speak", "Numbers re-checked after translation", I.language, G.dark]];
     steps.forEach(([t, d, img, c], i) => {
       const x = 0.6 + i * 2.5;
-      card(s, x, 1.45, 2.15, 1.75, G.tint, "agent step " + i);
-      circleIcon(s, img, x + 0.75, 1.55, 0.62, c, "step " + i);
-      T(s, t, { x: x + 0.1, y: 2.25, w: 1.95, h: 0.35, fontSize: 14, bold: true, color: G.ink, align: "center" });
-      T(s, d, { x: x + 0.1, y: 2.6, w: 1.95, h: 0.55, fontSize: 11, color: G.muted, align: "center" });
-      if (i < steps.length - 1) s.addImage({ data: I.arrow, x: x + 2.2, y: 2.15, w: 0.26, h: 0.26, objectName: "flow arrow " + i });
+      card(s, x, 1.4, 2.15, 1.5, G.tint, "agent step " + i);
+      circleIcon(s, img, x + 0.79, 1.5, 0.56, c, "step " + i);
+      T(s, t, { x: x + 0.1, y: 2.12, w: 1.95, h: 0.35, fontSize: 14, bold: true, color: G.ink, align: "center" });
+      T(s, d, { x: x + 0.1, y: 2.46, w: 1.95, h: 0.42, fontSize: 11, color: G.muted, align: "center" });
+      if (i < steps.length - 1) s.addImage({ data: I.arrow, x: x + 2.2, y: 2.02, w: 0.26, h: 0.26, objectName: "flow arrow " + i });
     });
-    s.addImage({ data: I.rotate, x: 8.4, y: 3.32, w: 0.3, h: 0.3, objectName: "rewrite loop icon" });
+    s.addImage({ data: I.rotate, x: 0.6, y: 3.04, w: 0.28, h: 0.28, objectName: "rewrite loop icon" });
     T(s, "Fails? The agent is told exactly which number failed and rewrites; anything still unverifiable is removed.",
-      { x: 8.8, y: 3.27, w: 3.95, h: 0.45, fontSize: 11, italic: true, color: G.saffron });
+      { x: 0.98, y: 3.02, w: 11.7, h: 0.32, fontSize: 12, italic: true, color: G.saffron });
     const guards = [[I.calc, "The LLM never does arithmetic", "FAO-56 and IMD engines compute every number; the LLM plans and explains."],
       [I.ban, "No invented pesticide doses", "A dose is allowed only if it appears in a retrieved FAO / TNAU document; otherwise refer to the KVK."],
       [I.shield, "Robust to prompt injection", "Numbers typed by the user never count as evidence."],
       [I.plug, "Self-correcting", "Bad tool calls, timeouts, failing sources and rate limits are fed back; the agent recovers."]];
+    const aw = Math.min(5.9, 3.42 / shot.ask.ratio);   // screenshot as large as the space below the flow allows
     guards.forEach(([img, t, d], i) => {
-      const y = 4.0 + i * 0.75;
+      const y = 3.65 + i * 0.82;
       circleIcon(s, img, 0.6, y, 0.52, G.mid, "guard " + i);
       T(s, [{ text: t + "  ", options: { bold: true, color: G.ink } }, { text: d, options: { color: G.muted } }],
-        { x: 1.3, y: y - 0.04, w: 5.6, h: 0.65, fontSize: 12.5, valign: "middle" });
+        { x: 1.3, y: y - 0.06, w: 12.75 - aw - 1.55, h: 0.7, fontSize: 12.5, valign: "middle" });
     });
-    framedImage(s, shot.ask, 7.55, 3.95, 5.0, "Live Hindi answer with agent trace");
-    s.addNotes("Explicit state machine: plan, act (parallel tools), draft, verify, self-correct, translate. The screenshot is a real Hindi answer: 6 numbers verified against live data, 2 tool calls, 2.8 s, with the live trace on the right.");
+    framedImage(s, shot.ask, 12.75 - aw, 3.55, aw, "Live Hindi answer with agent trace");
+    s.addNotes("Explicit state machine: plan, act (parallel tools), draft, verify, self-correct, translate. The screenshot is a real Hindi answer: 4 numbers verified against live data, 2 tool calls, 2.8 s, with the live trace on the right.");
   }
 
   // ------------------------------------------------------------------ 5. Architecture
@@ -248,10 +250,10 @@ async function jpg(file, width = 1600) {
       showTitle: true, title: "All 12 scenarios passed — answer time (s), live data + live LLM", titleFontSize: 12,
       titleColor: G.dark, titleFontFace: FONT, showLegend: false, catAxisOrientation: "maxMin", barGapWidthPct: 45,
       objectName: "Eval latency chart" });
-    const h = framedImage(s, shot.outage, 8.25, 3.15, 4.45, "Resilience Lab: simulated Open-Meteo outage");
+    const h = framedImage(s, shot.outage, 8.1, 3.15, 4.6, "Resilience Lab: simulated Open-Meteo outage");
     T(s, [{ text: "Resilience Lab, live: ", options: { bold: true, color: G.dark } },
       { text: "switch off a provider and watch the fallback (here Open-Meteo → MET Norway + NASA POWER, with an amber banner).", options: { color: G.muted } }],
-      { x: 8.25, y: 3.25 + h, w: 4.45, h: 0.75, fontSize: 11.5 });
+      { x: 8.1, y: 3.3 + h, w: 4.6, h: 0.75, fontSize: 11.5 });
     s.addNotes("Every figure here is reproducible from the repo: scripts/eval_agent.py (12 scenarios across 5 languages, plus injection, dose and hallucination traps), pytest (69 tests, including fault injection) and the in-app Resilience Lab. Real production bugs we found and fixed: SQLite locking under load, Nominatim rate-limiting cloud IPs, and a missing native library in the container.");
   }
 

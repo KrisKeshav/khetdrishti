@@ -221,7 +221,7 @@ tests/              pytest
 - Integration with IMD district agromet advisories and PM-KISAN / PMFBY crop-insurance triggers.
 
 ## 7. Team
-`<names, roles>`
+Kris Keshav and Shivam Bansal — IIT Roorkee
 
 *Decision support only. For agro-chemicals, consult your local KVK or the Kisan Call Centre on 1800-180-1551.*
 
